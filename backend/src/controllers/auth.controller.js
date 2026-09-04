@@ -20,7 +20,6 @@ const verificationInvalidPage = fs.readFileSync(
   "utf8",
 );
 
-
 export const registerController = async (req, res) => {
   const { username, email, password } = req.body;
   const existingUser = await User.findOne({ email }, { username });
@@ -43,7 +42,7 @@ export const registerController = async (req, res) => {
     },
   );
 
-  await sendEmail({
+  const emailResult = await sendEmail({
     to: email,
     subject: "Welcome to Perplexity",
     html: `<h1>Hi ${username}, Welcome to Perplexity</h1>
@@ -54,6 +53,14 @@ export const registerController = async (req, res) => {
     <p>Best regards,<br/>The Perplexity Team</p>
     `,
   });
+
+  if (!emailResult.success) {
+    return res.status(503).json({
+      message: "Account created, but verification email could not be sent",
+      success: false,
+      error: emailResult.error,
+    });
+  }
 
   res.status(201).json({
     message: "User created successfully",
