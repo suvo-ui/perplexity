@@ -15,11 +15,22 @@ export async function sendMessageController(req, res) {
     });
   }
 
-  let chat = null;
+  let chat;
   let chatTitle = null;
 
-  // generate a title for the chat based on the message
-  if (!chatId) {
+  if (chatId) {
+    chat = await Chat.findOne({
+      _id: chatId,
+      user: req.user.id,
+    });
+
+    if (!chat) {
+      return res.status(404).json({
+        message: "Chat not found",
+        success: false,
+      });
+    }
+  } else {
     chatTitle = await generateChatTitle(message);
     chat = await Chat.create({
       user: req.user.id,
@@ -27,7 +38,7 @@ export async function sendMessageController(req, res) {
     });
   }
 
-  const activeChatId = chatId || chat._id;
+  const activeChatId = chat._id;
 
   const userMessage = await Message.create({
     chat: activeChatId,
@@ -35,9 +46,7 @@ export async function sendMessageController(req, res) {
     role: "user",
   });
 
-  const messages = await Message.find({ chat: activeChatId }).sort({
-    createdAt: 1,
-  });
+  const messages = await Message.find({ chat: activeChatId });
   console.log("Messages in chat:", messages);
 
   // Call the AI service to generate a response
@@ -50,20 +59,20 @@ export async function sendMessageController(req, res) {
   });
 
   res.status(201).json({
-    chatTitle: chatTitle ? chatTitle.content : null,
+    chatTitle: chatTitle ? chatTitle.content : chat.title,
     chat,
     userMessage,
     aiMessage,
   });
 }
 
-export async function getChats(req,res){
+export async function getChats(req, res) {
   const user = req.user.id;
   const chats = await Chat.find({ user }).sort({ createdAt: -1 });
   res.status(200).json(chats);
 }
 
-export async function getMessages(req,res){
+export async function getMessages(req, res) {
   const { chatId } = req.params;
 
   const chat = await Chat.findOne({
@@ -78,7 +87,7 @@ export async function getMessages(req,res){
     });
   }
 
-  const messages = await Message.find({ chat: chatId }).sort({ createdAt: 1 });
+  const messages = await Message.find({ chat: chatId || chat._id });
   res.status(200).json(messages);
 }
 

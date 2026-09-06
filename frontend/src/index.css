@@ -1,2 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@500;600&display=swap");
 @import "tailwindcss";
 @plugin "daisyui";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, sans-serif;
+  --font-display: "Lora", Georgia, serif;
+}
+
+:root {
+  font-family: "DM Sans", ui-sans-serif, sans-serif;
+  color: #f5f3f0;
+  background: #0b0c0d;
+}
+
+body {
+  min-width: 320px;
+  background: #0b0c0d;
+}
+
+.font-display {
+  font-family: "Lora", Georgia, serif;
+}
+
+button,
+textarea {
+  font: inherit;
+}
