@@ -3,7 +3,11 @@ import {
   HumanMessage,
   SystemMessage,
   AIMessage,
-} from "@langchain/core/messages";
+  tool,
+  createAgent,
+} from "langchain";
+import * as z from "zod";
+import { searchInternet } from "./internet.service.js";
 
 const geminiModel = new ChatGoogleGenerativeAI({
   model: "gemini-3.5-flash-lite",
@@ -15,6 +19,27 @@ const geminiTitleModel = new ChatGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
   temperature: 0.2,
   maxOutputTokens: 24,
+});
+
+const searchInternetTool = tool(
+  async ({ query }) => {
+    const results = await searchInternet(query);
+    return JSON.stringify(results);
+  },
+  {
+    name: "search_internet",
+    description: "Search the internet for current or relevant information.",
+    schema: z.object({
+      query: z
+        .string()
+        .describe("The search query to use for the internet search."),
+    }),
+  },
+);
+
+const internetAgent = createAgent({
+  model: geminiModel,
+  tools: [searchInternetTool],
 });
 
 export async function generateResponse(messages) {
@@ -33,8 +58,15 @@ export async function generateResponse(messages) {
     throw new Error("Cannot generate a response without a valid message");
   }
 
-  const res = await geminiModel.invoke(formattedMessages);
-  return res;
+  const res = await internetAgent.invoke({
+    messages: [
+      new SystemMessage(
+        "You are a helpful research assistant. Use the search_internet tool when the user asks about current, uncertain, or web-based information. Base factual answers on the search results and clearly state when information is unavailable.",
+      ),
+      ...formattedMessages,
+    ],
+  });
+  return res.messages.at(-1);
 }
 
 export async function generateChatTitle(message) {
